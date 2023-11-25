@@ -1,48 +1,10 @@
-const express = require('express');
-const app = express();
 const sqlite = require('sqlite3');
-const connectKnex = require('./database/connectKnex');
 const db = require('./database/query');
-const bodyParser = require('body-parser');
-var cors = require('cors')
-
-app.use(cors());
-//create table if not exist
-createTableIfNotExist();
-
-app.use(bodyParser.urlencoded({extended :false}));
-app.use(bodyParser.json());
 const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout
   });
   
-
-
-// //API routes
-// app.post("/task", async (req,res) =>{
-//     const data = await db.createTask(req.body);
-//     res.status(201).json({id : data[0]});
-// });
-
-// app.get("/task", async (_,res) =>{
-//     const data = await db.getAllTask();
-//     res.status(200).json(data);
-// });
-
-// app.put("/task/:id", async (req,res) =>{
-//     const id = await db.updateTask(req.params.id, req.body);
-//     res.status(200).json({id});
-// });
-
-// app.delete("/task/:id", async (req,res) =>{
-//     await db.deleteTask(req.params.id);
-//     res.status(200).json({success: true});
-// });
-
-//start backend
-// app.listen(5001, () => console.log('Listening to port 5001'));
-
 function createTableIfNotExist(){
     //open database
     const db = new sqlite.Database('./task.db', sqlite.OPEN_READWRITE, (err) =>{
@@ -58,18 +20,17 @@ function createTableIfNotExist(){
     });
 }
 
-
-
-showChoise();
-readInput();
-
 function showChoise(){
     console.log("Welcome!");
     console.log("Please choose the menu (number only)");
     console.log("1. Read All Task");
     console.log("2. Create A Task");
-    console.log("3. Update A Task");
+    console.log("3. Update A Task Status");
     console.log("4. Delete A Task");
+    console.log("5. Update A Task");
+    console.log("6. Read Task By Status");
+    console.log("7. Delete All Task");
+    console.log(" ");
 }
 function readInput(){
     readline.question('Your Input: ', (choise) => {
@@ -80,15 +41,23 @@ function readInput(){
             case "2":
                 createATask();
                 break;
-        
             case "3":
                 updateATaskStatus();
                 break;
             case "4":
                 deleteATask();
                 break;
+            case "5":
+                updateATask();
+                break;
+            case "6":
+                printTaskByStatus();
+                break;
+            case "7":
+                deleteAllTask();
+                break;
             default:
-                console.log("Check your input");
+                console.log("-------Invalid Input------------");
                 showChoise();
                 readInput();
                 break;
@@ -98,25 +67,21 @@ function readInput(){
 
 }
 
-
 async function printAllTask(){
     const data = await db.getAllTask();
-    data.forEach(item => {
-        console.log("-------------------");
-        console.log("id: ", item.id );
-        console.log("title: ", item.title );
-        console.log("description: ", item.description );
-        console.log("status: ", item.status );
-        console.log("-------------------");
-        }
-    )
+    if(data.length != 0){
+        data.forEach(item => printData(item));
+    }else{
+        console.log("-------No Data------------");
+    }
+    
     showChoise();
     readInput();
     
 }
 
 async function createATask(){
-    console.log("-------Isi Data------------");
+    console.log("-------Fill Detail------------");
     let title = "";
     let desc = "";
     let status = "";
@@ -127,12 +92,7 @@ async function createATask(){
             readline.question('status: ', async (answer) => {
                 status = answer;
                 const item = await db.createTask({'id': null,"title" : title, "description" : desc, "status" : status});
-                console.log("-------Berhasil Ditambahkan------------");
-                console.log("id: ", item.id );
-                console.log("title: ", item.title );
-                console.log("description: ", item.description );
-                console.log("status: ", item.status );
-                console.log("-------------------");
+                console.log("-------Data has been added------------");
                 showChoise();
                 readInput();
             });
@@ -157,7 +117,7 @@ async function updateATask(){
     let title = "";
     let desc = "";
     let status = "";
-    readline.question('Input Id Task yang akan diubah: ', (answer) => {
+    readline.question('Input Task ID: ', (answer) => {
         id = answer;
         readline.question('New title: ', (answer) => {
             title = answer;
@@ -166,7 +126,11 @@ async function updateATask(){
                 readline.question('New status: ', async (answer) => {
                     status = answer;
                     const item = await db.updateTask(id,{"title" : title, "description" : desc, "status" : status});
-                    console.log("-------Berhasil Diubah------------");
+                    if(item == 0){
+                        console.log("-------ID Not Found------------");
+                    }else{
+                        console.log("-------Data Has Been Changed------------");
+                    }
                     showChoise();
                     readInput();
                 });
@@ -178,32 +142,26 @@ async function updateATask(){
 
 async function updateATaskStatus(){
     const data = await db.getAllTask();
-    data.forEach(item => {
-        console.log("-------------------");
-        console.log("id: ", item.id );
-        console.log("title: ", item.title );
-        console.log("description: ", item.description );
-        console.log("status: ", item.status );
-        console.log("-------------------");
-        }
-    )
+    data.forEach(item => printData(item));
     let id = -1;
-    let title = "";
-    let desc = "";
     let status = "";
-    readline.question('Input Id Task yang akan diubah: ', (answer) => {
+    readline.question('Input Task ID: ', (answer) => {
         id = answer;
         readline.question('New status: ', async (answer) => {
             status = answer;
-            const item = await db.updateTask(id,{"title" : title, "description" : desc, "status" : status});
-            console.log("-------Berhasil Diubah------------");
+            const item = await db.updateTask(id,{"status" : status});
+            if(item == 0){
+                console.log("-------ID Not Found------------");
+            }else{
+                console.log("-------Data Has Been Changed------------");
+            }
+            
             showChoise();
             readInput();
         });
     });
                        
 }
-
 
 async function deleteATask(){
     const data = await db.getAllTask();
@@ -217,12 +175,63 @@ async function deleteATask(){
         }
     )
     let id = -1;
-    readline.question('Input Id Task yang akan dihapus: ', async (answer) => {
+    readline.question('Input Task ID : ', async (answer) => {
         id = answer;
         const item = await db.deleteTask(id);
-        console.log("-------Berhasil Dihapus------------");
+        if(item == 0){
+            console.log("-------ID Not Found------------");    
+        }else{
+            console.log("-------Data Has Been Deleted------------");    
+        }
         showChoise();
         readInput();    
     });
                        
 }
+
+async function printTaskByStatus(){
+    readline.question('Input Task Status: ', async (answer) => {
+        const item = await db.getTaskByStatus(answer);
+        if(item.length == 0){
+            console.log("-------No Data Found------------");
+        }else{
+            item.forEach(it => printData(it));   
+        }
+        showChoise();
+        readInput();    
+    });
+}
+
+function printData(item){
+    console.log("-------------------");
+    console.log("id: ", item.id );
+    console.log("title: ", item.title );
+    console.log("description: ", item.description );
+    console.log("status: ", item.status );
+    console.log("-------------------");
+}
+
+async function deleteAllTask(){    
+    readline.question('Are you sure to delete all task? (Y/N) ', async (answer) => {
+        if(answer == 'Y' || answer == 'y'){
+            const item = await db.deleteAllTask();
+            if(item == 0){
+                console.log("-------Failed to delete------------");    
+            }else{
+                console.log("-------All data has been deleted------------");    
+            }    
+        }else{
+            if(answer != 'N' && answer != 'n'){
+                console.log("-------Invalid Input------------"); 
+            }
+        }
+        showChoise();
+        readInput(); 
+    });
+                       
+}
+
+// main function
+createTableIfNotExist();
+showChoise();
+readInput();

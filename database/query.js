@@ -4,7 +4,9 @@ const knex = require('./connectKnex');
 function getAllTask(){
     return knex("task").select("*");
 }
-
+function getTaskByStatus(status){
+    return knex("task").select("*").where("status", 'like', `%${status}%`);
+}
 function createTask(task){
     return knex("task").insert(task);
 }
@@ -16,11 +18,15 @@ function updateTask(id, task){
 function deleteTask(id){
     return knex("task").where("id", id).del();
 }
-
+function deleteAllTask(){
+    return knex("task").del();
+}
 module.exports = {
     createTask,
     deleteTask,
+    deleteAllTask,
     getAllTask,
+    getTaskByStatus,
     updateTask
 }
 
